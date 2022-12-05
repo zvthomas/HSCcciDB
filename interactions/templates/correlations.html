@@ -1,0 +1,738 @@
+{% extends "base_generic.html" %}
+{% block content %}
+{% load static %}
+
+<style>
+
+input[type=range] {
+  margin: 0px 0;
+  width: 100%;
+  height: 10px;
+  color: #03a9f4;
+}
+input[type=range]:focus {
+  outline: none;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: #03a9f4;
+  border-radius: 0px;
+}
+input[type=range]::-webkit-slider-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  margin-top: -7px;
+}
+input[type=range]:focus::-webkit-slider-runnable-track {
+  background: #03a9f4;
+  color: #03a9f4;
+}
+.range-wrap{
+  width: 500px;
+  position: relative;
+}
+.range-value{
+  position: absolute;
+  top: -40%;
+}
+.range-value span{
+  width: 30px;
+  height: 24px;
+  line-height: 24px;
+  text-align: center;
+  background: #03a9f4;
+  color: #fff;
+  font-size: 12px;
+  display: block;
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, 0);
+  border-radius: 6px;
+}
+.range-value span:before{
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-top: 10px solid #03a9f4;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  margin-top: -1px;
+}
+
+.ticks {
+  display: flex;
+  justify-content: space-between;
+  padding: 7px 7px;
+}
+.tick {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 1px;
+  background: gray;
+  
+  height: 10px;
+  line-height: 40px;
+  margin-bottom: 20px;
+}
+
+</style>
+<div style="width:90%">
+<h1>Pathway Correlations</h1>
+
+<h3>How Correlations were Calculated</h3>
+<p>
+    Spearman rank correlations at the individual HSC level were calcualted across all Cell type-pathway pairs  (i.e. T-cells Receiving MHC-I).
+    Correlations were filtered such that pathways in a pair shared no functional genes.
+    They were then filtered such that their adjusted p-value < 0.05. These correlations were then collapsed to pathway level correlations by 
+    averaging their cell type-pathway pair correlations and taking the best adjusted p-value. 
+    <br><br>
+    The highest positive correlation is between HSCs 
+    sending SELPLG and HSCs receiving CD34 (r = 0.736). The highest negative correlations is between HSCs sending MHC-I and HSCs sending PARs 
+    (r = -0.403).
+
+    <div class="row">
+      <div class="column">
+          <img src="{% static "imgs/top10_positive_corr_paths_min_pval_5per.png" %}" alt="colormap" style="width:100%;"/>
+      </div>
+
+      <div class="column">
+          <img src="{% static "imgs/top10_negative_corr_paths_min_pval_5per.png" %}" alt="colormap" style="width:100%;"/>            
+      </div>
+  </div>
+
+</p>
+
+<h3>Plot Usage</h3>
+    <p><b>Visible pathways can be filtered</b> by adjusting 
+    correlation threshold for either positive or negative correlations. Negative correlations are filtered by absolute value correlation. 
+    By selecting a correlation, the pathways with correlations greater than the selected threshold, therefore, choosing 0 for both 
+    thresholds will show all pathway correlations with adjusted p-value < 0.05. <br><b>Select an edge</b> to automatically view the pathway gene networks of the attached nodes 
+    on the plots beneath the correlation plot.<br><b>Two gene network</b> plots to explore a specific pathway's gene networks. 
+    By selecting a pathway and toggling either "HSCs Receiving" or "HSCs Sending", you can 
+    highlight the associated genes that influence a cell's pathway score (i.e. Selp in HSCs Receiving CD34).
+    
+    </p>
+  </div>
+
+<!--
+  <label>Number of Pathways:</label>
+  <br>
+  <br>
+  <div class="range-wrap">
+    <div class="range-value" id="rangePATH"></div>
+    <input id="range" type="range" min="0" max="200" step="5">
+  </div>
+-->
+
+  <label><b>Positive Correlation Threshold (Show correlations > Positive Correlation Threshold):</b></label>
+  <br>
+  <br>
+
+  <div class="range-wrap">
+    <div class="range-value" id="rangePOSCOR"></div>
+    <input id="range2" type="range" min="0" max="0.7" step="0.01" onchange="show_plot()" value="0.4">
+    <div class="ticks">
+      <span class="tick">0</span>
+      <span class="tick">0.1</span>
+      <span class="tick">0.2</span>
+      <span class="tick">0.3</span>
+      <span class="tick">0.4</span>
+      <span class="tick">0.5</span>
+      <span class="tick">0.6</span>
+      <span class="tick">0.7</span>
+    </div>
+  </div>
+  <br>
+  <label><b>Negative Correlation Threshold (Show abs(correlations) > Negative Correlation Threshold):</b></label>
+  <br>
+  <br>
+  <div class="range-wrap">
+    <div class="range-value" id="rangeNEGCOR"></div>
+    <input id="range3" type="range" min="0" max="0.4" step="0.01" onchange="show_plot()" value="0.2">
+    <div class="ticks">
+      <span class="tick">0</span>
+      <span class="tick">0.1</span>
+      <span class="tick">0.2</span>
+      <span class="tick">0.3</span>
+      <span class="tick">0.4</span>
+    </div>
+  </div>
+  <br>
+
+<body>
+    <div id="container" style="width: 90%; height: 600px; border:1px solid black;"></div>
+    <div class="wrapper" style="width: 90%;">
+    <ul>
+        <li style="display:inline;"><b>Node Color:</b></li>
+        <li style="display:inline; color:green"><b><span style='font-size:30px;'>&#9679;</span> HSC Receiving (Receptor Expression)</b></li>
+        <li style="display:inline; color:purple"><b><span style='font-size:30px;'>&#9679;</span>HSC Sending (Ligand Expression)</b></li>
+    </ul>
+    <ul>
+        <li style="display:inline;"><b>Edge Color:</b></li>
+        <li style="display:inline; color:red"><b> &#8212; Positive Correlation</b></li>
+        <li style="display:inline; color:blue"><b> &#8212; Negative Correlation</b></li>
+    </ul>
+    </div>
+</body>
+<br>
+
+<br>
+<div class="row">
+  
+  <div class="column">
+    <h2>Pathway Gene Network</h2>
+  <label for="paths1">Choose a pathway:</label>
+  <select name="paths1" id="paths1" onchange="show_genemap_1()">
+    {% for p in paths %}
+    <option value="{{p}}">{{p}}</option>
+    {% endfor %}
+  </select>
+  <form name="myForm">
+  <label>Choose Signaling Type: </label>
+    <input type="radio" id="receptor" name="fav_language" value="receptor" style="color:green">
+    <label for="receptor" style="color:green"><b>HSCs Receiving</b></label>
+    <input type="radio" id="ligand" name="fav_language" value="ligand" style="color:purple" checked>
+    <label for="ligand" style="color:purple"><b>HSCs Sending</b></label>
+    
+  </form>
+  <img src="{% static 'imgs/ligand.png' %}" alt="colormap" style="height:40px;"/> <strong>Ligand</strong><img src="{% static 'imgs/receptor.png' %}" alt="colormap" style="height:40px;"/> <strong>Receptor</strong>
+  
+<br>
+
+<body>
+  <div id="gene-container" style="width: 90%; height: 600px; border:1px solid black;"></div>
+</body>
+  </div>
+
+  <div class="column">
+    <h2>Pathway Gene Network</h2>
+  <label for="paths2">Choose a pathway:</label>
+  <select name="paths2" id="paths2" onchange="show_genemap_2()">
+    {% for p in paths %}
+    <option value="{{p}}">{{p}}</option>
+    {% endfor %}
+  </select>
+  <form name="myForm2">
+    <label>Choose Signaling Type: </label>
+      <input type="radio" id="receptor2" name="fav_language2" value="receptor2" style="color:green">
+      <label for="receptor2" style="color:green"><b>HSCs Receiving</b></label>
+      <input type="radio" id="ligand2" name="fav_language2" value="ligand2" style="color:purple" checked>
+      <label for="ligand2" style="color:purple"><b>HSCs Sending</b></label>
+      
+    </form>
+  <img src="{% static 'imgs/ligand.png' %}" alt="colormap" style="height:40px;"/> <strong>Ligand</strong><img src="{% static 'imgs/receptor.png' %}" alt="colormap" style="height:40px;"/> <strong>Receptor</strong>
+
+<body>
+  <div id="gene-container2" style="width: 90%; height: 600px; border:1px solid black;"></div>
+</body>
+  </div>
+
+</div>
+
+
+<script>
+
+window.onload = show_plots;
+
+//const
+//  range = document.getElementById('range'),
+// rangeV = document.getElementById('rangePATH'),
+//  setValue = ()=>{
+//    const
+//      newValue = Number( (range.value - range.min) * 100 / (range.max - range.min) ),
+//      newPosition = 10 - (newValue * 0.2);
+//    rangeV.innerHTML = `<span>${range.value}</span>`;
+//    rangeV.style.left = `calc(${newValue}% + (${newPosition}px))`;
+//  };
+//document.addEventListener("DOMContentLoaded", setValue);
+//range.addEventListener('input', setValue);
+
+const
+  range2 = document.getElementById('range2'),
+  rangeV2 = document.getElementById('rangePOSCOR'),
+  setValue2 = ()=>{
+    const
+      newValue2 = Number( (range2.value - range2.min) * 100 / (range2.max - range2.min) ),
+      newPosition2 = 10 - (newValue2 * 0.2);
+    rangeV2.innerHTML = `<span>${range2.value}</span>`;
+    rangeV2.style.left = `calc(${newValue2}% + (${newPosition2}px))`;
+  };
+document.addEventListener("DOMContentLoaded", setValue2);
+range2.addEventListener('input', setValue2);
+
+const
+  range3 = document.getElementById('range3'),
+  rangeV3 = document.getElementById('rangeNEGCOR'),
+  setValue3 = ()=>{
+    const
+      newValue3 = Number( (range3.value - range3.min) * 100 / (range3.max - range3.min) ),
+      newPosition3 = 10 - (newValue3 * 0.2);
+    rangeV3.innerHTML = `<span>${range3.value}</span>`;
+    rangeV3.style.left = `calc(${newValue3}% + (${newPosition3}px))`;
+  };
+document.addEventListener("DOMContentLoaded", setValue3);
+range3.addEventListener('input', setValue3);
+
+function show_plot(){
+document.getElementById("container").innerHTML = "";
+var l = JSON.parse("{{plot_div|escapejs}}");
+p1names = l[1];
+p1colors = l[2];
+p1ids = l[3];
+
+p2names = l[4];
+p2colors = l[5];
+p2ids = l[6];
+
+corrs = l[0];
+pos_max = Math.max.apply(Math, corrs);
+pos_min = Math.min.apply(Math, corrs);
+pos_range =  pos_max - pos_min;
+
+pvals = l[7];
+edge_colors = l[8];    
+
+p1names_n = l[10];
+p1colors_n = l[11];
+p1ids_n = l[12];
+
+p2names_n = l[13];
+p2colors_n = l[14];
+p2ids_n = l[15];
+
+corrs_n = l[9];
+neg_max = -1*Math.max.apply(Math, corrs_n);
+neg_min = -1*Math.min.apply(Math, corrs_n);
+neg_range =  neg_min - neg_max;
+pvals_n = l[16];
+edge_colors_n = l[17];
+
+p1urls = l[18];
+p2urls = l[19];
+p1urls_n = l[20];
+p2urls_n = l[21];
+
+let nodes_a = new Array();
+let edges_a = new Array();
+
+//num_nodes = document.getElementById("range").value;
+pos_threshold = document.getElementById("range2").value;
+neg_threshold = document.getElementById("range3").value;
+let j = 0;
+// ADD THE POSITIVE CORRELATIONS
+for (let i=0; i<p1names.length;i++){
+    if (corrs[i] < pos_threshold) { break; }
+    
+    nodes_a.push({
+        'id':p1ids[i],
+        'normal' : {'stroke' : "3 black", 'fill' : p1colors[i], 'height' : 40},
+        'hovered': {'stroke' : "5 black", 'fill' : p1colors[i], 'height' : 40},
+        'selected' : {'stroke' : "7 black", 'fill' : p1colors[i], 'height' : 40},
+        'name' : p1names[i],
+        'url' : p1urls[i]
+    });
+
+    nodes_a.push({
+        'id':p2ids[i],
+        'normal' : {'stroke' : "3 black", 'fill' : p2colors[i], 'height' : 40},
+        'hovered': {'stroke' : "5 black", 'fill' : p2colors[i], 'height' : 40},
+        'selected' : {'stroke' : "7 black", 'fill' : p2colors[i], 'height' : 40},
+        'name' : p2names[i],
+        'url' : p2urls[i]
+    });
+
+    a = (corrs[i]-pos_min)*10/pos_range;
+    b = a + 2;
+    c = b + 2;
+
+    edges_a.push({
+        'id': j,
+        'to':p1ids[i],
+        'from':p2ids[i],
+        'correlation': corrs[i],
+        'pval': pvals[i],
+        'normal' : {'stroke' : a.toString()  + " #f59f9f"},
+        'hovered' : {'stroke' : b.toString() + " " + edge_colors[i]},
+        'selected' : {'stroke' : c.toString() + " " + edge_colors[i]}
+    })
+    j++;
+  }
+// ADD THE NEGATIVE CORRELATIONS
+for (let i=0; i<p1names_n.length;i++){
+    var nn = -1*corrs_n[i]
+    if (nn < neg_threshold) { break; }
+    
+    nodes_a.push({
+        'id':p1ids_n[i],
+        'normal' : {'stroke' : "3 black", 'fill' : p1colors_n[i], 'height' : 40},
+        'hovered': {'stroke' : "5 black", 'fill' : p1colors_n[i], 'height' : 40},
+        'selected' : {'stroke' : "7 black", 'fill' : p1colors_n[i], 'height' : 40},
+        'name' : p1names_n[i],
+        'url' : p1urls_n[i]
+    });
+
+    nodes_a.push({
+        'id':p2ids_n[i],
+        'normal' : {'stroke' : "3 black", 'fill' : p2colors_n[i], 'height' : 40},
+        'hovered': {'stroke' : "5 black", 'fill' : p2colors_n[i], 'height' : 40},
+        'selected' : {'stroke' : "7 black", 'fill' : p2colors_n[i], 'height' : 40},
+        'name' : p2names_n[i],
+        'url' : p2urls_n[i]
+    });
+
+    a = (-1*corrs_n[i]-neg_max)*10/neg_range;
+    b = a + 2;
+    c = b + 2;
+    edges_a.push({
+      'id': j,
+        'to':p1ids_n[i],
+        'from':p2ids_n[i],
+        'correlation': corrs_n[i],
+        'pval': pvals_n[i],
+        'normal' : {'stroke' : a.toString()  + " #9f9ff5"},
+        'hovered' : {'stroke' : b.toString()  + " " + edge_colors_n[i]},
+        'selected' : {'stroke' : c.toString()  + " " + edge_colors_n[i]}
+    })
+    j++;
+  }
+
+  var data = {'nodes': nodes_a, 'edges' : edges_a}
+  var chart = anychart.graph(data);
+
+  chart.nodes().labels().enabled(true);
+  chart.nodes().labels().format("{%name}")
+  chart.nodes().labels().fontSize(14);
+  chart.nodes().labels().fontWeight(600);
+  chart.nodes().labels().fontColor('black');
+  chart.nodes().tooltip().useHtml(true);
+  chart.edges().tooltip().useHtml(true);
+
+  chart.tooltip().format(function() {
+    if (this.type == "node") {
+
+      t1 = this.id.split("_");
+      p1 = t1[0];
+      t1 = t1[1];
+      t1 = t1 === "S" ? "sending " : "receiving ";
+
+      return "<span style='font-weight:bold'>" + "HSCs " + t1 + p1 + "</span>";
+
+    } else {
+      
+      t1 = this.getData("to").split("_");
+      p1 = t1[0];
+      t1 = t1[1];
+      t1 = t1 === "S" ? "sending " : "receiving ";
+      t2 = this.getData("from").split("_");
+      p2 = t2[0];
+      t2 = t2[1];
+      t2 = t2 === "S" ? "sending " : "receiving ";
+
+      return "HSCs " + t1 + p1 + " --- " + "HSCs " + t2 + p2 + "<br> Correlation: " + this.getData("correlation").toFixed(3) + "<br> -log10(Adj. P-val): " + -1*Math.log10(this.getData("pval")).toFixed(3);
+    }
+  });
+
+  chart.container("container");
+
+  chart.draw();
+
+  chart.listen('dblClick', function(e) {
+    var tag = e.domTarget.tag;
+    if (tag) {
+      if (tag.type === 'node') {
+        // get url from data directly
+        var url;
+        console.log(tag?.id)
+        for (var i = 0; i < nodes_a.length; i++) {
+          if (String(nodes_a[i]?.id) === tag.id) {
+            url = nodes_a[i]?.url;
+            break;
+          }
+        }
+
+        // open url
+        window.open(url,"_self");
+      }
+    }
+  });
+
+  chart.listen('click', function(e) {
+      var tag = e.domTarget.tag;
+      if (tag) {
+        if (tag.type === 'edge') {        
+          var to, from;
+          for (var i = 0; i < edges_a.length; i++) {
+            if (String(edges_a[i].id) === tag.id) {
+              t1 = edges_a[i].to.split("_");
+              p1 = t1[0];
+              t1 = t1[1];
+              t1 = t1 === "S" ? "ligand" : "receptor";
+
+              for (var option of document.getElementById("paths1").options)
+              {
+              if (option.value === p1)
+              {
+                  option.selected = true;
+              }
+              }
+              document.getElementById(t1).checked = true;
+              show_genemap_1();
+
+              t2 = edges_a[i].from.split("_");
+              p2 = t2[0];
+              t2 = t2[1];
+              t2 = t2 === "S" ? "ligand2" : "receptor2";
+
+              for (var option2 of document.getElementById("paths2").options)
+              {
+              if (option2.value === p2)
+              {
+                  option2.selected = true;
+              }
+              }
+              document.getElementById(t2).checked = true;
+              show_genemap_2();
+            }
+          }
+        
+        }
+      }
+    })
+
+}
+
+function show_genemap_1(){
+  document.getElementById("gene-container").innerHTML = "";
+
+    var pathway_oi = document.getElementById("paths1");
+    var pathway = pathway_oi.value;
+
+    var l= JSON.parse("{{genemap|escapejs}}");
+    ligands = l[0];
+    receptors = l[1];
+    pathways = l[2];
+    u_pathways = l[3];
+    let nodes_a = new Array();
+    let edges_a = new Array();
+    for (let i = 0; i<ligands.length; i++){
+      if (pathways[i] === pathway){
+      nodes_a.push({
+        'id':ligands[i],
+        'height' : 60,
+        'normal':{'stroke' : "0 black"},
+        'hovered': {'stroke' : "0 black"},
+        'selected' : {'stroke' : "3 black"},
+        'fill' : {src: "{% static 'imgs/ligand.png' %}"},
+        'pathway' : pathways[i],
+        'group':'ligand'
+      });
+
+      nodes_a.push({
+        'id':receptors[i],
+        'height' : 80,
+        'normal':{'stroke' : "0 black"},
+        'hovered': {'stroke' : "0 black"},
+        'selected' : {'stroke' : "3 black"},
+        'fill' : {src: "{% static 'imgs/receptor.png' %}"},
+        'pathway' : pathways[i],
+        'group':'receptor'
+      });
+
+      edges_a.push({
+          'to' : receptors[i],
+          'from' : ligands[i],
+          'normal' : {'stroke' : "3 #808080"},
+          'hovered' : {'stroke' : "5 #505050"},
+          'selected' : {'stroke' : "6 black"}
+        });
+    }
+  }
+    var data = {'nodes' : nodes_a, 'edges' : edges_a};
+
+    var chart = anychart.graph(data);
+
+    chart.nodes().labels().enabled(true);
+    chart.nodes().labels().format("{%id}");
+    chart.nodes().labels().fontSize(14);
+    chart.nodes().labels().fontWeight(600);
+    chart.nodes().labels().fontColor('black');
+    chart.nodes().tooltip().useHtml(true);
+    chart.edges().tooltip().useHtml(true);
+    
+    chart.group(getradio1()).labels().fontColor('red');
+    chart.group(getradio1()).labels().fontSize(20);
+    chart.group(getradio1()).labels().fontWeight(700);
+    
+    chart.tooltip().format(function() {
+      if (this.type == "node"){
+        return this.id
+      }
+      else {
+        return this.getData("to") + ' and ' + this.getData("from")
+      }
+    })
+
+    chart.container("gene-container");
+
+    // initiate drawing the chart
+    chart.draw();
+
+  var myGroups = ['ligand', 'receptor'];
+  var rad = document.myForm.fav_language;
+  var prev = null;
+  for (var i = 0; i < rad.length; i++) {
+      rad[i].addEventListener('change', function() {
+          (prev) ? console.log(prev.value): null;
+          if (this !== prev) {
+              prev = this;
+          }
+          for (var i = 0; i < myGroups.length; i++){
+            chart.group(myGroups[i]).labels().fontColor("black");
+            chart.group(myGroups[i]).labels().fontSize(14);
+            chart.group(myGroups[i]).labels().fontWeight(100);
+          } 
+          
+          chart.group(this.value).labels().fontColor('red');
+          chart.group(this.value).labels().fontSize(20);
+          chart.group(this.value).labels().fontWeight(700);
+      });
+    }
+}
+
+function show_genemap_2(){
+  document.getElementById("gene-container2").innerHTML = "";
+
+    var pathway_oi = document.getElementById("paths2");
+    var pathway = pathway_oi.value;
+
+    var l= JSON.parse("{{genemap|escapejs}}");
+    ligands = l[0];
+    receptors = l[1];
+    pathways = l[2];
+    u_pathways = l[3];
+    let nodes_a2 = new Array();
+    let edges_a2 = new Array();
+    for (let i = 0; i<ligands.length; i++){
+      if (pathways[i] === pathway){
+      nodes_a2.push({
+        'id':ligands[i],
+        'height' : 60,
+        'normal':{'stroke' : "0 black"},
+        'hovered': {'stroke' : "0 black"},
+        'selected' : {'stroke' : "3 black"},
+        'fill' : {src: "{% static 'imgs/ligand.png' %}"},
+        'pathway' : pathways[i],
+        'group':'ligand2'
+      });
+
+      nodes_a2.push({
+        'id':receptors[i],
+        'height' : 80,
+        'normal':{'stroke' : "0 black"},
+        'hovered': {'stroke' : "0 black"},
+        'selected' : {'stroke' : "3 black"},
+        'fill' : {src: "{% static 'imgs/receptor.png' %}"},
+        'pathway' : pathways[i],
+        'group':'receptor2'
+      });
+
+      edges_a2.push({
+          'to' : receptors[i],
+          'from' : ligands[i],
+          'normal' : {'stroke' : "3 #808080"},
+          'hovered' : {'stroke' : "5 #505050"},
+          'selected' : {'stroke' : "6 black"}
+        });
+    }
+  }
+    var data2 = {'nodes' : nodes_a2, 'edges' : edges_a2};
+
+    var chart2 = anychart.graph(data2);
+
+    chart2.nodes().labels().enabled(true);
+    chart2.nodes().labels().format("{%id}");
+    chart2.nodes().labels().fontSize(14);
+    chart2.nodes().labels().fontWeight(600);
+    chart2.nodes().labels().fontColor('black');
+    chart2.nodes().tooltip().useHtml(true);
+    chart2.edges().tooltip().useHtml(true);
+
+    chart2.group(getradio2()).labels().fontColor('red');
+    chart2.group(getradio2()).labels().fontSize(20);
+    chart2.group(getradio2()).labels().fontWeight(700);
+
+    chart2.tooltip().format(function() {
+      if (this.type == "node"){
+        return this.id
+      }
+      else {
+        return this.getData("to") + ' and ' + this.getData("from")
+      }
+    })
+
+    chart2.container("gene-container2");
+
+    // initiate drawing the chart
+    chart2.draw();
+
+  var myGroups = ['ligand2', 'receptor2'];
+  var rad2 = document.myForm2.fav_language2;
+  var prev2 = null;
+  for (var i = 0; i < rad2.length; i++) {
+      rad2[i].addEventListener('change', function() {
+          (prev2) ? console.log(prev2.value): null;
+          if (this !== prev2) {
+              prev2 = this;
+          }
+          for (var i = 0; i < myGroups.length; i++){
+            chart2.group(myGroups[i]).labels().fontColor("black");
+            chart2.group(myGroups[i]).labels().fontSize(14);
+            chart2.group(myGroups[i]).labels().fontWeight(100);
+          } 
+          
+          chart2.group(this.value).labels().fontColor('red');
+          chart2.group(this.value).labels().fontSize(20);
+          chart2.group(this.value).labels().fontWeight(700);
+      });
+    }
+
+}
+
+function getradio1(){
+  var radios = document.getElementsByName('fav_language');
+
+  for (var i = 0, length = radios.length; i < length; i++) {
+    if (radios[i].checked) {
+      return radios[i].value;
+    }
+  }
+}
+
+function getradio2(){
+  var radios = document.getElementsByName('fav_language2');
+
+  for (var i = 0, length = radios.length; i < length; i++) {
+    if (radios[i].checked) {
+      return radios[i].value;
+    }
+  }
+}
+
+function show_plots(){
+  show_plot();
+  show_genemap_1();
+  show_genemap_2();
+}
+</script>
+
+{% endblock %}

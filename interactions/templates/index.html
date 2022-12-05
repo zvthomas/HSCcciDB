@@ -1,0 +1,215 @@
+{% extends "base_generic.html" %}
+{% load humanize %}
+
+{% block content %}
+
+
+<style>
+    .table {
+    border-spacing: 0;
+    width: 90%;
+  }
+  
+  th {
+    cursor: pointer;
+  }
+  
+  th, td {
+    text-align: left;
+    padding: 16px;
+  }
+  
+  tr:nth-child(even) {
+    background-color: #f2f2f2
+  }
+
+  thead {color: black;
+      background: white; }
+
+  .column_imgs {
+    margin-left:auto;
+  margin-right:auto;
+    width: 80%;
+    word-wrap: break-word;
+  }
+
+</style>
+
+<div style="width:90%">
+    <h1><b>H</b>ematopoietic Stem Cell <b>I</b>nteraction <b>D</b>ata <b>E</b>xplorer (HIDE)</h1>
+    <p>Welcome to HIDE, a webiste developed by the <em>Lu Lab</em> to display putative interactions between hematopoietic stem cells and their microenvironment at the single cell level! 
+    We provide a few starting points in the left menu, or continue on this page to read more about the data used and how predictions were made.</p>
+
+    <div class="row">
+        <div class="column">
+            {% load static %}<img src="{% static "imgs/hsc_r_r.png" %}" alt="colormap" style="width:90%;"/>
+        </div>
+
+        <div class="column">
+            <img src="{% static "imgs/hsc_s_r.png" %}" alt="colormap" style="width:90%;"/>
+        </div>
+
+    </div>
+<br>
+<h2>How predictions were made</h2>
+    <p>
+        Using CellChat (<a href="https://www.nature.com/articles/s41467-021-21246-9" target="_blank">Jin, et. al</a>), individual HSCs were treated as
+        distinct populations and their intercellular communications with their microenvironment were predicted. These predictions are based on scRNA
+        expression of corresponding ligands and receptors in the sending and receiving cells respectively. These generated <strong>{{num_celltype_pathway_pairs|intcomma}}</strong> 
+        Pathway-Cell Type Pairs with at least 5% HSC activity. The Pathway-Cell Type Pairs were also used to generate <a href="{% url 'correlations' %}">pathway-pathway correlations</a>. 
+        These correlations were calculated using a Spearman rank correlations.
+    </p>
+
+    <div class="row">
+        <div class="column_imgs">
+            <img src="{% static "imgs/fig1_niche.png" %}" alt="colormap" style="width:100%;"/>
+        </div>
+    </div>
+
+<h2>Data used</h2>
+    <p>
+        Single cell RNA-seq data for hematopoietic stem and progenitor cells were collected in the lab. Single cell RNA-seq data for non-hematopoietic cells
+        comes from <a href="https://www.frontiersin.org/articles/10.3389/fcell.2021.622519/full" target="_blank">Dolgalev & Tikhonova</a>.
+        Single cell RNA-seq data for blood and immune cells comes from <a href="https://www.nature.com/articles/s41556-019-0439-6" target="_blank">Baccin, et. al</a>. 
+        The number of pathways, cell types, and genes used are as follows:
+        
+        <li><strong><a href="{% url 'cellclasses' %}">Cell Types</a>:</strong> {{num_cell_types}} </li>
+        <ul>
+            <li>Non-hematopoietic: {{num_n}}</li>
+            <li>Blood & Immune: {{num_i}}</li>
+            <li>Hematopoietic Progenitor Cells: {{num_p}}</li>
+        </ul>
+
+        <li><strong><a href="{% url 'pathways' %}">Pathways</a>:</strong> {{num_pathways}} </li>
+        <ul>
+            <li>Secreted Signaling: {{num_ss}}</li>
+            <li>Cell Cell Contact: {{num_ccc}}</li>
+            <li>Extracellular Matrix-Receptor: {{num_ecmr}}</li>
+        </ul>
+        <li><strong><a href="{% url 'correlations' %}">Pathway correlations</a>:</strong> {{ num_correlations|intcomma }} </li>
+                <ul>
+                    <li>Positive Correlations: {{ pos_correlations }}</li>
+                    <li>Negative Correlations: {{ neg_correlations }}</li>
+                </ul>
+        <li><strong><a href="{% url 'genes' %}">Ligands</a>:</strong> {{num_ligands}} </li>
+        <li><strong><a href="{% url 'genes' %}">Receptors</a>:</strong> {{num_receptors}} </li>
+    </p>
+    
+
+
+    <h2>How to use</h2>
+    <p>
+        See the <a href="{% url 'about' %}">Help</a> page for more information.
+    </p>
+  </div>
+
+<h2>Summary Table</h2>
+
+Click on a column name to sort
+<table id="sortMe" class="table">
+    <thead>
+      <tr>
+        <th>Cell Type</th>
+        <th>Communication Type (HSCs are...)</th>
+        <th>Pathway Type</th>
+        <th>Pathway Name</th>
+        <th>Interacting HSC Fraction</th>
+        <th>Interaction Score</th>
+     </tr>
+    </thead>
+    <tbody>
+      {% for pairs in for_table %}
+      <tr>
+        <td><a href="{{ pairs.celltype.get_absolute_url }}">{{pairs.celltype.name}}</a></td>
+        
+        <td>{{ pairs.get_sorr_display }}</td>
+        <td><a href="{{ pairs.pathway.get_absolute_url }}">{{pairs.pathway.name}}</a></td>
+        <td>{{ pairs.pathway.get_interaction_type_display }}</td>
+        <td>{{pairs.hscPercent|floatformat:3}}</td>
+        <td>{{pairs.averageScore|floatformat:3}}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+</table>
+<br>
+<br>
+<br>
+
+    
+<script>
+// Query the table
+  const table = document.getElementById('sortMe');
+  
+  // Query the headers
+  const headers = table.querySelectorAll('th');
+  
+  // Loop over the headers
+  [].forEach.call(headers, function (header, index) {
+      header.addEventListener('click', function () {
+          // This function will sort the column
+          sortColumn(index);
+      });
+  });
+  
+  // Query all rows
+  const tableBody = table.querySelector('tbody');
+  const rows = tableBody.querySelectorAll('tr');
+  const transform = function (index, content) {
+      // Get the data type of column
+      const type = headers[index].getAttribute('data-type');
+      switch (type) {
+          case 'number':
+              return parseFloat(content);
+          case 'string':
+          default:
+              return content;
+      }
+  };
+  const directions = Array.from(headers).map(function (header) {
+      return '';
+  });
+  const sortColumn = function (index) {
+      // Clone the rows
+      
+      // Get the current direction
+      const direction = directions[index] || 'asc';
+  
+      // A factor based on the direction
+      const multiplier = (direction === 'asc') ? 1 : -1;
+      
+      const newRows = Array.from(rows);
+      // Sort rows by the content of cells
+      newRows.sort(function (rowA, rowB) {
+      const cellA = rowA.querySelectorAll('td')[index].innerHTML;
+      const cellB = rowB.querySelectorAll('td')[index].innerHTML;
+  
+      // Transform the content of cells
+      const a = transform(index, cellA);
+      const b = transform(index, cellB);
+  
+      // And compare them
+      switch (true) {
+          case a > b:
+              return 1* multiplier;
+          case a < b:
+              return -1* multiplier;
+          case a === b:
+              return 0;
+      }
+  });
+      directions[index] = direction === 'asc' ? 'desc' : 'asc';
+  
+      // Remove old rows
+      [].forEach.call(rows, function (row) {
+          tableBody.removeChild(row);
+      });
+  
+      // Append new row
+      newRows.forEach(function (newRow) {
+          tableBody.appendChild(newRow);
+      });
+  };
+  
+</script>
+
+{% endblock %}

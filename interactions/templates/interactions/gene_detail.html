@@ -1,0 +1,187 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+
+<style>
+  .column_gene {
+    float: left;
+    width: 20%;
+    word-wrap: break-word;
+  }
+
+  .column_plot {
+    float: left;
+    width: 80%;
+  }
+  
+  /* Clear floats after the columns */
+.row:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+</style>
+  
+{% if lorr == 'r' %}
+<h1>Receptor: {{ genename.name }}</h1>
+{% else %}
+<h1>Ligand: {{ genename.name }}</h1>
+{% endif %}
+
+<div class="row">
+  <div class="column_gene">
+<h3>Pathways: </h3>
+  <ul>
+    {% for pathway in pathways %}
+    <li><a href="{{ pathway.get_absolute_url }}">{{ pathway.name }}</a></li>
+    {% endfor %}
+  </ul>
+
+  {% if lorr == 'r' %}
+    <h3>Ligands: </h3>
+  {% else %}
+    <h3>Receptors: </h3>
+  {% endif %}
+
+  <ul>
+    {% for pair in paired %}
+    <li><a href="{{ pair.get_absolute_url }}">{{ pair.name }}</a></li>
+    {% endfor %}
+  </ul>
+
+  <h3>Details on {{ genename.name }} interactions:</h3>
+  <ul>
+    {% for key, values in pmids.items %}
+    <li><a href={{values}} target="_blank">{{ key }}</a></li>
+    {% endfor %}
+    {% for key, values in keggs.items %}
+    <li><a href={{values}} target="_blank">{{ key }}</a></li>
+    {% endfor %}
+    {% for key, values in pmcs.items %}
+    <li><a href={{values}} target="_blank">{{ key }}</a></li>
+    {% endfor %}
+  </ul>
+
+  </div>
+  <div class="column_plot">
+    <h2>Pathway Gene Networks</h2>
+  <label for="paths">Choose a pathway:</label>
+  <select name="paths" id="paths" onchange="show_plot()">
+    {% for p in paths %}
+    <option value="{{p}}">{{p}}</option>
+    {% endfor %}
+  </select>
+  <body>
+    {% load static %} <img src="{% static 'imgs/ligand.png' %}" alt="colormap" style="height:40px;"/> <strong>Ligand</strong><img src="{% static 'imgs/receptor.png' %}" alt="colormap" style="height:40px;"/> <strong>Receptor</strong>
+    <div id="container" style="width: 90%; height: 600px; border:1px solid black;"></div>
+    <div class="wrapper" style="width: 90%;">
+    </div>
+  </body>
+
+    
+  </div>
+
+
+</div>
+  
+<br>
+<br>
+
+  <h5>View HSPC {{ genename.name }} expression on Gene Expression Commons <a href="{{ link }}" target="_blank">here</a>*.</h5>
+  <p>*You will need an account with Gene Expression Commons to view this link.</p>
+
+
+
+
+
+<script>
+  
+  window.onload = show_plot;
+
+  function show_plot(){
+  
+    document.getElementById("container").innerHTML = "";
+
+    var pathway_oi = document.getElementById("paths");
+    var pathway = pathway_oi.value;
+    
+    var l= JSON.parse("{{plot_div|escapejs}}");
+    ligands = l[0];
+    receptors = l[1];
+    pathways = l[2];
+    u_pathways = l[3];
+    let nodes_a = new Array();
+    let edges_a = new Array();
+    for (let i = 0; i<ligands.length; i++){
+      nod = 'normal';
+      if (pathways[i] === pathway){
+        if(ligands[i] === "{{genename.name}}"){
+          nod = 'goi';
+        }
+      nodes_a.push({
+        'id':ligands[i],
+        'height' : 60,
+        'normal':{'stroke' : "0 black"},
+        'hovered': {'stroke' : "0 black"},
+        'selected' : {'stroke' : "3 black"},
+        'fill' : {src: "{% static 'imgs/ligand.png' %}"},
+        'pathway' : pathways[i],
+        'group':nod
+      });
+
+      nod = 'normal';
+      if(receptors[i] === "{{genename.name}}"){
+          nod = 'goi';
+        }
+      nodes_a.push({
+        'id':receptors[i],
+        'height' : 80,
+        'normal':{'stroke' : "0 black"},
+        'hovered': {'stroke' : "0 black"},
+        'selected' : {'stroke' : "3 black"},
+        'fill' : {src: "{% static 'imgs/receptor.png' %}"},
+        'pathway' : pathways[i],
+        'group':nod
+      });
+
+      edges_a.push({
+          'to' : receptors[i],
+          'from' : ligands[i],
+          'normal' : {'stroke' : "3 #808080"},
+          'hovered' : {'stroke' : "5 #505050"},
+          'selected' : {'stroke' : "6 black"}
+        });
+    }
+  }
+    var data = {'nodes' : nodes_a, 'edges' : edges_a};
+
+    var chart = anychart.graph(data);
+
+    chart.nodes().labels().enabled(true);
+    chart.nodes().labels().format("{%id}");
+    chart.nodes().labels().fontSize(14);
+    chart.nodes().labels().fontWeight(600);
+    chart.nodes().labels().fontColor('black');
+    chart.nodes().tooltip().useHtml(true);
+    chart.edges().tooltip().useHtml(true);
+
+    chart.tooltip().format(function() {
+      if (this.type == "node"){
+        return this.id
+      }
+      else {
+        return this.getData("to") + ' and ' + this.getData("from")
+      }
+    })
+    
+    chart.select(["{{ genename.name }}"]);
+    chart.group('goi').labels().fontColor("red");
+    chart.group('goi').labels().fontSize(20);
+
+    chart.container("container");
+
+    // initiate drawing the chart
+    chart.draw();
+}
+</script>
+{% endblock %}

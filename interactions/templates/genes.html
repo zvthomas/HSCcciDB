@@ -1,0 +1,241 @@
+{% extends "base_generic.html" %}
+
+
+{% block content %}
+
+<style>
+    .dropbtn {
+      background-color: #04AA6D;
+      color: white;
+      padding: 16px;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .dropbtn:hover, .dropbtn:focus {
+      background-color: #3e8e41;
+    }
+    
+    #myInput {
+      box-sizing: border-box;
+      background-image: url('searchicon.png');
+      background-position: 14px 12px;
+      background-repeat: no-repeat;
+      font-size: 16px;
+      padding: 14px 20px 12px 45px;
+      border: none;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    #myInput:focus {outline: 3px solid #ddd;}
+
+    #myInput2 {
+      box-sizing: border-box;
+      background-image: url('searchicon.png');
+      background-position: 14px 12px;
+      background-repeat: no-repeat;
+      font-size: 16px;
+      padding: 14px 20px 12px 45px;
+      border: none;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    #myInput2:focus {outline: 3px solid #ddd;}
+    
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f6f6f6;
+      min-width: 230px;
+      overflow: auto;
+      border: 1px solid #ddd;
+      z-index: 1;
+    }
+    
+    .dropdown-content a {
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+    }
+    
+    .dropdown a:hover {background-color: #ddd;}
+    
+    .show {display: block;}
+</style>
+
+<body>
+  <div style="width:90%">
+    <h2>Search Ligands and Receptors</h2>
+    <p>Click on the button to open the dropdown menu, and use the input field to search for a specific gene link.</p>
+    
+    <div class="dropdown">
+      <button onclick="myFunction()" class="dropbtn" style="background-color:#f58742; border: 2px solid black">Ligands</button>
+      <div id="myDropdown" class="dropdown-content">
+        <input type="text" placeholder="Search.." id="myInput" onkeyup="filterFunction()">
+        {% for ligand in ligand_list %}
+        <a href="{{ ligand.get_absolute_url }}">{{ ligand.name }}</a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="dropdown">
+        <button onclick="myFunction2()" class="dropbtn" style="background-color:#4287f5; border: 2px solid black">Receptors</button>
+        <div id="myDropdown2" class="dropdown-content">
+          <input type="text" placeholder="Search.." id="myInput2" onkeyup="filterFunction2()">
+          {% for receptor in receptor_list %}
+          <a href="{{ receptor.get_absolute_url }}">{{ receptor.name }}</a>
+          {% endfor %}
+        </div>
+      </div>
+  </div>
+    <script>
+        /* When the user clicks on the button,
+        toggle between hiding and showing the dropdown content */
+        function myFunction() {
+          document.getElementById("myDropdown").classList.toggle("show");
+          if(document.getElementById("myDropdown2").classList.toggle('show')){document.getElementById("myDropdown2").classList.toggle('show');}
+        }
+        
+        function myFunction2() {
+          document.getElementById("myDropdown2").classList.toggle("show");
+          if(document.getElementById("myDropdown").classList.toggle('show')){document.getElementById("myDropdown").classList.toggle('show');}
+        }
+
+        function filterFunction() {
+          var input, filter, ul, li, a, i;
+          input = document.getElementById("myInput");
+          filter = input.value.toUpperCase();
+          div = document.getElementById("myDropdown");
+          a = div.getElementsByTagName("a");
+          for (i = 0; i < a.length; i++) {
+            txtValue = a[i].textContent || a[i].innerText;
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+              a[i].style.display = "";
+            } else {
+              a[i].style.display = "none";
+            }
+          }
+        }
+
+        function filterFunction2() {
+          var input, filter, ul, li, a, i;
+          input = document.getElementById("myInput2");
+          filter = input.value.toUpperCase();
+          div = document.getElementById("myDropdown2");
+          a = div.getElementsByTagName("a");
+          for (i = 0; i < a.length; i++) {
+            txtValue = a[i].textContent || a[i].innerText;
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+              a[i].style.display = "";
+            } else {
+              a[i].style.display = "none";
+            }
+          }
+        }
+    </script>
+
+</body>
+<br>
+<br>
+<h2>Explore Pathway Gene Networks</h2>
+  <label for="paths">Choose a pathway:</label>
+  <select name="paths" id="paths" onchange="show_plot()">
+    {% for p in paths %}
+    <option value="{{p}}">{{p}}</option>
+    {% endfor %}
+  </select>
+
+<body>
+  {% load static %} <img src="{% static 'imgs/ligand.png' %}" alt="colormap" style="height:40px;"/> <strong>Ligand</strong><img src="{% static 'imgs/receptor.png' %}" alt="colormap" style="height:40px;"/> <strong>Receptor</strong>
+  <div id="container" style="width: 90%; height: 600px; border:1px solid black;"></div>
+  <div class="wrapper" style="width: 90%;">
+  </div>
+</body>
+
+<script>
+  
+  window.onload = show_plot;
+
+  function show_plot(){
+  
+    document.getElementById("container").innerHTML = "";
+
+    var pathway_oi = document.getElementById("paths");
+    var pathway = pathway_oi.value;
+
+    var l= JSON.parse("{{plot_div|escapejs}}");
+    ligands = l[0];
+    receptors = l[1];
+    pathways = l[2];
+    u_pathways = l[3];
+    let nodes_a = new Array();
+    let edges_a = new Array();
+    for (let i = 0; i<ligands.length; i++){
+      if (pathways[i] === pathway){
+      nodes_a.push({
+        'id':ligands[i],
+        'height' : 60,
+        'normal':{'stroke' : "0 black"},
+        'hovered': {'stroke' : "0 black"},
+        'selected' : {'stroke' : "3 black"},
+        'fill' : {src: "{% static 'imgs/ligand.png' %}"},
+        'pathway' : pathways[i],
+        'group':'ligand'
+      });
+
+      nodes_a.push({
+        'id':receptors[i],
+        'height' : 80,
+        'normal':{'stroke' : "0 black"},
+        'hovered': {'stroke' : "0 black"},
+        'selected' : {'stroke' : "3 black"},
+        'fill' : {src: "{% static 'imgs/receptor.png' %}"},
+        'pathway' : pathways[i],
+        'group':'receptor'
+      });
+
+      edges_a.push({
+          'to' : receptors[i],
+          'from' : ligands[i],
+          'normal' : {'stroke' : "3 #808080"},
+          'hovered' : {'stroke' : "5 #505050"},
+          'selected' : {'stroke' : "6 black"}
+        });
+    }
+  }
+    var data = {'nodes' : nodes_a, 'edges' : edges_a};
+
+    var chart = anychart.graph(data);
+
+    chart.nodes().labels().enabled(true);
+    chart.nodes().labels().format("{%id}");
+    chart.nodes().labels().fontSize(14);
+    chart.nodes().labels().fontWeight(600);
+    chart.nodes().labels().fontColor('black');
+    chart.nodes().tooltip().useHtml(true);
+    chart.edges().tooltip().useHtml(true);
+
+    chart.tooltip().format(function() {
+      if (this.type == "node"){
+        return this.id
+      }
+      else {
+        return this.getData("to") + ' and ' + this.getData("from")
+      }
+    })
+
+    chart.container("container");
+
+    // initiate drawing the chart
+    chart.draw();
+}
+</script>
+
+{% endblock %}

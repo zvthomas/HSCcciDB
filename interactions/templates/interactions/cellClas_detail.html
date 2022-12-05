@@ -1,0 +1,264 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+
+<style type="text/css">
+  .wrapper {
+      text-align: center;
+  }
+  .wrapper ul {
+      display: inline-block;
+      margin: 0;
+      padding: 0;
+      /* For IE, the outcast */
+      zoom:1;
+      *display: inline;
+  }
+  .wrapper li {
+      float: left;
+      padding: 2px 5px;
+  }
+  .column_details {
+    float: left;
+    width: 20%;
+    word-wrap: break-word;
+  }
+
+  .column_graph {
+    float: left;
+    width: 75%;
+  }
+</style>
+
+<div class = 'row' style>
+  <h1>{{ cellclass.name }}</h1>
+  <div class="column_graph">
+    <body>
+      <div id="container" style="width: 100%; height: 600px; border:1px solid black;"></div>
+      {% load static %} <img src="{% static "imgs/grey_colormap.png" %}" alt="colormap" style="width:100%;height:20px;"/>
+      <div class="wrapper" style="width: 100%;"><p style="text-align:center">Average Probability Score</p>
+
+      <form name="myForm">
+      <!-- <p><u>Select Cell Type to Highlight</u></p> -->
+      <label>Node Stroke Color: </label>
+      <input type="radio" id="ss" name="fav_language" value="#056E5D" style="color:#056E5D">
+      <label for="ss" style="color:#056E5D"><b>Secreted Signaling</b></label>
+      <input type="radio" id="ccc" name="fav_language" value="#7905D7" style="color:#7905D7">
+      <label for="ccc" style="color:#7905D7"><b>Cell-Cell Contact</b></label>
+      <input type="radio" id="ecmr" name="fav_language" value="#202A25" style="color:#202A25">
+      <label for="ecmr" style="color:#202A25"><b>ECM-Receptor</b></label>
+      <input type="radio" id="na" name="fav_language" value="NA" style="color:black" checked>
+      <label for="na"><i>Reset</i></label>
+  
+    </form>  
+        <ul>
+        <li style="display:inline;">Edge Color:</li>
+        <li style="display:inline; color:#da70d6"><b> &#8212; HSCs Receiving</b></li>
+        <li style="display:inline; color:#00ffff"><b> &#8212; HSCs Sending</b></li>
+      </ul>
+    </div>
+    </body>
+  </div>
+  <div class="column_details">
+  
+  <p><strong>Cell Type:</strong>
+    {{ cellclass.get_cell_type_display }}
+  </p>
+  <p><strong>Graph Terms:</strong>
+    <ul>
+      <li><strong>Average Interaction Score: </strong>Score given to cell-type pathway pair that describes the weight of the potential interaction. This score is based on ligand and receptor gene expression levels.</li>
+      <li><strong>HSC Percent: </strong>Proportion of HSCs that interact with the given cell type in a given pathway.</li>
+      <li><strong>Node Size: </strong>Node size refelcts HSC Percent</li>
+      <li><strong>Node Color: </strong>Node color reflects Average Interaction Score</li>
+    </ul>
+  </p>
+</div>
+
+</div>
+  
+    <hr>
+
+
+  <div class="row">
+    <div class="column">
+       <p><strong>Pathways that {{ cellclass.name }} receive from HSCs</strong></p>
+      <ul>
+      {% if pactsS %}
+      {% for p in pactsS %}
+        {% if p.pathway.interaction_type == 's' %}
+          <li style="color:#056E5D"><a style="color:#056E5D" href="{{ p.pathway.get_absolute_url }}">{{ p.pathway.name }}</a></li>
+        {% elif p.pathway.interaction_type == 'c'%}
+          <li style="color:#7905D7"><a style="color:#7905D7" href="{{ p.pathway.get_absolute_url }}">{{ p.pathway.name }}</a></li>
+        {% else %}
+          <li style="color:#202A25"><a style="color:#202A25" href="{{ p.pathway.get_absolute_url }}">{{ p.pathway.name }}</a></li>
+        {% endif %}
+      {% endfor %}
+      {% else %}
+      No pathways
+      {% endif %}
+  </ul>
+    </div>
+    <div class="column">
+      <p><strong>Pathways that {{ cellclass.name }} send to HSCs</strong></p>
+      <ul>
+        {% if pactsR %}
+      {% for p in pactsR %}
+        {% if p.pathway.interaction_type == 's' %}
+          <li style="color:#056E5D"><a style="color:#056E5D" href="{{ p.pathway.get_absolute_url }}">{{ p.pathway.name }}</a></li>
+        {% elif p.pathway.interaction_type == 'c'%}
+          <li style="color:#7905D7"><a style="color:#7905D7" href="{{ p.pathway.get_absolute_url }}">{{ p.pathway.name }}</a></li>
+        {% else %}
+          <li style="color:#202A25"><a style="color:#202A25" href="{{ p.pathway.get_absolute_url }}">{{ p.pathway.name }}</a></li>
+        {% endif %}
+      {% endfor %}
+      {% else %}
+      No pathways
+      {% endif %}
+      </ul>
+    </div>
+    <hr>
+  <p>*Pathways are filtered such that at least 5% of HSCs are active.</p>
+  </div>
+  
+<br>
+
+<br>
+
+<script>
+
+  var l = JSON.parse("{{plot_div|escapejs}}");
+  node_names = l[0];
+  to_names = l[1];
+  from_names = l[2];
+  ecs = l[3];
+  fill_color = l[4];
+  avgscore = l[5];
+  hscPercent = l[6];
+  edge_cols = l[7];
+  height = l[8];
+  urls = l[9];
+
+  let myGroups = new Array();
+  let nodes_a = new Array(node_names.length);
+  for (let i=0; i<node_names.length-1;i++){
+    nodes_a.push({
+    'id':node_names[i],
+    'normal' : {'stroke' : "3 ".concat(ecs[i]), 'fill' : fill_color[i], 'height' : height[i]},
+    'hovered': {'stroke' : "5 ".concat(ecs[i]), 'fill' : fill_color[i], 'height' : height[i]},
+    'selected' : {'stroke' : "7 ".concat(ecs[i]), 'fill' : fill_color[i], 'height' : height[i]},
+    'Average_Score' : avgscore[i].toFixed(3),
+    'HSC_Percent' : hscPercent[i].toFixed(2),
+    'group': ecs[i],
+    'url' : urls[i]
+  });
+
+    if(!myGroups.includes(ecs[i])){
+      myGroups.push(ecs[i])
+    }
+  }
+  
+  nodes_a.push({
+    'id':"{{ cellclass.name }}",
+    'normal' : {'stroke' : "black", 'fill' : 'black', 'height' : 70},
+    'hovered': {'stroke' : "black", 'fill' : 'black', 'height' : 70},
+    'selected' : {'stroke' : "black", 'fill' : 'black', 'height' : 70},
+    'group' : 'centerCell'
+    
+  });
+  
+  let edges_a = new Array(to_names.length);
+  for (let i=0; i<to_names.length;i++){
+    edges_a.push({
+    'from':to_names[i],
+    'to' : from_names[i],
+    'normal' : {'stroke' : edge_cols[i]},
+    'hovered' : {'stroke' : "6 " + edge_cols[i]},
+    'selected' : {'stroke' : "8 " + edge_cols[i]}})
+  }
+  
+  var data = {'nodes': nodes_a, 'edges': edges_a};
+  
+  // create a chart and set the data
+  var chart = anychart.graph(data);
+  
+  //chart.nodes().height(40);
+  chart.nodes().labels().enabled(true);
+  chart.nodes().labels().fontSize(14);
+  chart.nodes().labels().fontWeight(100);
+  chart.group("centerCell").labels().fontWeight(700);
+
+  chart.nodes().labels().format(function() { return this.id.split("_")[0];});
+
+  chart.nodes().labels().fontColor('black');
+  chart.nodes().tooltip().useHtml(true);
+  chart.edges().arrows({enabled: true, position: '50%', size : 10});
+  chart.interactivity().hoverGap(30);   
+
+  chart.tooltip().format(function() {
+    if (this.type == "node") {
+      if (this.id != "{{ cellclass.name }}"){
+        return "<span style='font-weight:bold'>" + this.id.split("_")[0] + "</span><br>Average Interaction Score: " + this.getData("Average_Score") + 
+        "<br>HSC Percent: " + this.getData("HSC_Percent") + "%";
+      }
+      else {
+        return "<span style='font-weight:bold'>{{ cellclass.name }}</span>";
+      }
+    } else {
+      if (this.getData("from") === "{{ cellclass.name }}"){
+        return this.getData("from").split("_")[0] + " sending " + this.getData("to").split("_")[0] + " to HSCs";
+      } else {
+      return "HSCs sending " + this.getData("from").split("_")[0] + " to " + this.getData("to").split("_")[0];
+      }
+    }
+  });
+  
+  //chart.nodes().tooltip().format("<span style='font-weight:bold'>{%id}</span><br>Average Probability Score: {%Average_Score}<br>HSC Percent: {%HSC_Percent}");
+  // set the container id
+  chart.container("container");
+  
+  // initiate drawing the chart
+  chart.draw();
+
+  chart.listen('dblClick', function(e) {
+    var tag = e.domTarget.tag;
+    if (tag) {
+      if (tag.type === 'node') {
+        // get url from data directly
+        var url;
+        console.log(tag?.id)
+        for (var i = 0; i < nodes_a.length; i++) {
+          if (String(nodes_a[i]?.id) === tag.id) {
+            url = nodes_a[i]?.url;
+            break;
+          }
+        }
+
+        // open url
+        window.open(url,"_self");
+      }
+    }
+  });
+
+  var rad = document.myForm.fav_language;
+  var prev = null;
+  for (var i = 0; i < rad.length; i++) {
+      rad[i].addEventListener('change', function() {
+          (prev) ? console.log(prev.value): null;
+          if (this !== prev) {
+              prev = this;
+          }
+          for (var i = 0; i < myGroups.length; i++){
+            chart.group(myGroups[i]).labels().fontColor("black");
+            chart.group(myGroups[i]).labels().fontSize(14);
+            chart.group(myGroups[i]).labels().fontWeight(100);
+          } 
+          
+          chart.group(this.value).labels().fontColor(this.value);
+          chart.group(this.value).labels().fontSize(20);
+          chart.group(this.value).labels().fontWeight(700);
+      });
+  }
+
+  </script>
+      
+  {% endblock %}

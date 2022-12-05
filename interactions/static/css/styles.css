@@ -1,0 +1,28 @@
+.sidebar-nav {
+    margin-top: 20px;
+    margin-left: 20px;
+    padding: 0;
+    list-style: none;
+}
+
+a {
+    text-decoration: none;
+}
+
+a:hover {
+    color: rgb(36, 200, 241);
+    background-color: transparent;
+  }
+
+.column {
+    float: left;
+    width: 50%;
+  }
+  
+  /* Clear floats after the columns */
+.row:after {
+    content: "";
+    display: table;
+    clear: both;
+    width: 90%;
+}

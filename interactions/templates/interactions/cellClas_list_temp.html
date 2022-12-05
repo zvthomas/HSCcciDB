@@ -1,0 +1,22 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+    <h1>Cell Class List</h1>
+    <p><span style="color:blue"><b>&#x25A0; Blood & Immune </b></span><span style="color:green"><b>&#x25A0; Non-hematopoietic </b></span><span style="color:red"><b>&#x25A0; HPC</b></span></p>
+
+    {% if cellclas_list %}
+    <ul>
+        {% for cell in cellclas_list %}
+            {% if cell.cell_type == 'n' %}
+                <li style="color:green"><a style="color:green" href="{{ cell.get_absolute_url }}">{{ cell.name }}</a></li>
+            {% elif cell.cell_type == 'i'%}
+                <li style="color:blue"><a style="color:blue" href="{{ cell.get_absolute_url }}">{{ cell.name }}</a></li>
+            {% else %}
+                <li style="color:red"><a style="color:red" href="{{ cell.get_absolute_url }}">{{ cell.name }}</a></li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No cell types have been uploaded</p>
+    {% endif %}
+{% endblock %}

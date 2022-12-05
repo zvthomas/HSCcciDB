@@ -1,0 +1,1 @@
+web gunicorn cciDBsite.wsgi:application --log-file -

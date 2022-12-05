@@ -1,0 +1,111 @@
+{% extends "base_generic.html" %}
+{% block content %}
+{% load static %}
+<style>
+
+img {
+    padding: 0;
+    display: block;
+    margin: 0 auto;
+    max-height: 100%;
+    max-width: 100%;
+}
+
+.titleLink:hover {
+  color: rgb(36, 200, 241);
+  background-color: transparent;
+}
+
+</style>
+
+<div style="width:90%">
+<h1>About HIDE</h1>
+
+<p>
+    <b>H</b>ematopoietic Stem Cell <b>I</b>nteraction <b>D</b>ata <b>E</b>xplorer (HIDE) is a database tool for exploration of intercellular communication
+    patterns of hematopoietic stem cells in the mouse bone marrow at the single cell level. To start exploring, 
+    we provide four starting points: <b>Cell Types</b>, <b>Pathways</b>, <b>Pathway Correlations</b>, and <b>Genes</b>.
+</p>
+
+<div class = 'row'>
+
+    <div class = "column">
+        <h3>
+            <a class="titleLink" href="{% url 'cellclasses' %}">Cell Types</a>
+        </h3>
+        
+        <p>
+            Like pathways, cell types are split into three categories: non-hematopoietic, blood
+            and immune, and HPCs. Selecting a cell type from the dropdown menu takes you to a page 
+            that displays the details of that cell type. These details include: the pathways 
+            the given cell type is involved in with HSCs, and a plot to visualize the pathways, 
+            fraction of HSCs and interaction scores for the given pathway.
+        </p>        
+        <img src="{% static "imgs/Slide5.jpg" %}" alt="colormap" style="width:90%;"/>
+
+        </div>
+
+    <div class = "column">
+<h3>
+    <a class="titleLink" href="{% url 'pathways' %}" color="black">Pathways</a>
+</h3>
+
+<p>
+    Pathways are split into three categories: secreted signaling, cell-cell contact, 
+    and ECM-Receptor. Selecting a pathway from the dropdown menu takes you to a page 
+    that displays the details of that pathway. These details include: the pathway's 
+    ligands and receptors, the cell types that participate in the pathway with HSCs, 
+    and a plot to visualize the fraction of HSCs and interaction scores for  
+    the given pathway.
+</p>
+<img src="{% static "imgs/Slide7.jpg" %}" alt="colormap" style="width:90%;"/>
+
+</div>
+
+</div>
+
+<div class = 'row'>
+
+    <div class = "column">
+        <h3>
+            <a class="titleLink" href="{% url 'correlations' %}">Pathway Correlations</a>
+        </h3>
+        
+        <p>
+        Spearman rank correlations at the individual HSC level were calcualted across all cell type-pathway pairs  (i.e. T-cells Receiving MHC-I).
+        Correlations were filtered such that pathways in a pair shared no functional genes.
+        They were then filtered such that their adjusted p-value < 0.05. These correlations were then collapsed to pathway level correlations by 
+        averaging their cell type-pathway pair correlations and taking the best adjusted p-value.
+        </p>
+        <img src="{% static "imgs/Slide6.jpg" %}" alt="colormap" style="width:90%;"/>
+
+        </div>
+
+    <div class = "column">
+<h3>
+    <a class="titleLink" href="{% url 'genes' %}">Genes</a>
+</h3>
+
+<p>
+    Genes are split into two groups, <b>ligands</b> and <b>receptors</b>. Selecting a gene 
+    from the dropdown menu takes you to a page that displays the details of the gene. These 
+    details include: the corresponding ligand or receptor, the pathways it is included in, 
+    and a link to the corresponding Gene Expression Commons information page (<a href="https://gexc.riken.jp/models/3/genes" target="_blank">Gene Expression Commons</a>).
+</p>
+<img src="{% static "imgs/Slide8.jpg" %}" alt="colormap" style="width:90%;"/>
+</div>
+
+</div>
+
+<h3><a href="https://ronglulab.usc.edu/" target="_blank">Lu Lab</a></h3>
+
+<p>
+    This database was designed and deployed by the Rong Lu Lab at the University of Southern 
+    California. Click <a href="https://ronglulab.usc.edu/" target="_blank">here</a> for more 
+    information about our group.
+    <br><br>
+    {% load static %} <img src="{% static "imgs/Rong-Lu-Lab-2022-web-by-Chris-Shinn.jpg" %}" alt="Rong Lu Lab Member Photo 2022" style="width:75%;"/>
+</p>
+</div>
+
+{% endblock %}

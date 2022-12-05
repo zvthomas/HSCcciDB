@@ -1,0 +1,21 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+    <h1>Pathway List</h1>
+    <p><span style="color:blue"><b>&#x25A0; Cell-Cell Contact </b></span><span style="color:red"><b>&#x25A0; ECM-Receptor </b></span><span style="color:green"><b>&#x25A0; Secreted Signaling </b></span></p>
+    {% if pathway_list %}
+    <ul>
+        {% for pathway in pathway_list %}
+            {% if pathway.interaction_type == 's' %}
+                <li style="color:green"><a style="color:green" href="{{ pathway.get_absolute_url }}">{{ pathway.name }}</a></li>
+            {% elif pathway.interaction_type == 'c'%}
+                <li style="color:blue"><a style="color:blue" href="{{ pathway.get_absolute_url }}">{{ pathway.name }}</a></li>
+            {% else %}
+                <li style="color:red"><a style="color:red" href="{{ pathway.get_absolute_url }}">{{ pathway.name }}</a></li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No pathways have been uploaded</p>
+    {% endif %}
+{% endblock %}
